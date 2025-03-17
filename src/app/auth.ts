@@ -21,6 +21,7 @@ export function getAuthOptions(req?: NextRequest): AuthOptions {
       },
       session({ session, token }) {
         if ('steam' in token) {
+          // @ts-expect-error - Steam profile added by Steam provider
           session.user!.steam = token.steam
         }
 
