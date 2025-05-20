@@ -3,11 +3,14 @@ import Steam, { STEAM_PROVIDER_ID } from 'next-auth-steam'
 import type { NextRequest } from 'next/server'
 
 export function getAuthOptions(req?: NextRequest): AuthOptions {
+  const baseUrl = process.env.NEXTAUTH_URL || (req ? `${req.headers.get('x-forwarded-proto') || 'http'}://${req.headers.get('host')}` : 'http://localhost:3000')
+
   return {
     providers: req
       ? [
           Steam(req, {
-            clientSecret: process.env.STEAM_API_KEY!
+            clientSecret: process.env.STEAM_API_KEY!,
+            baseUrl
           })
         ]
       : [],
