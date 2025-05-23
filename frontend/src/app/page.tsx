@@ -6,10 +6,12 @@ import { useSession } from "next-auth/react";
 
 export default function Home() {
   const session = useSession();
+      // @ts-expect-error - Steam profile added by Steam provider
 
-  if (session.status === "authenticated") {
-    return (
-      <div className="h-screen flex items-center justify-center">
+  console.log(session.data?.user.steam.steamid);
+  return (
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-r from-neutral-950 to-neutral-800">
+      {session.status === "authenticated" ? (
         <Button
           onClick={() => {
             signOut();
@@ -17,19 +19,15 @@ export default function Home() {
         >
           Sign out
         </Button>
-      </div>
-    );
-  }
-
-  return (
-    <div className="h-screen flex items-center justify-center">
-      <Button
-        onClick={() => {
-          signIn("steam");
-        }}
-      >
-        Sign in with Steam
-      </Button>
+      ) : (
+        <Button
+          onClick={() => {
+            signIn("steam");
+          }}
+        >
+          Sign in with Steam
+        </Button>
+      )}
     </div>
   );
 }
