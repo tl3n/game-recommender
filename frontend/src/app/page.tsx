@@ -40,7 +40,7 @@ export default function Home() {
               }
             }}
           >
-            {session.status === "authenticated" ? "Go to your discovery queue" : "Sign in with steam"}
+            Go to your discovery queue
             <ChevronRight className="mt-1 group-hover:translate-x-1 transition-transform" />
           </Button>
         </div>
