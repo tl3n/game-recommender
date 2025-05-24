@@ -30,9 +30,9 @@ def get_db():
 class GameStatusUpdate(BaseModel):
     appid: str
     status: str
-    steam_id: str
+    steamid: str
 
-@app.post("/api/games/status")
+@app.post("/game-status")
 async def update_game_status(status_update: GameStatusUpdate, db: Session = Depends(get_db)):
     try:
         # Validate status
@@ -45,7 +45,7 @@ async def update_game_status(status_update: GameStatusUpdate, db: Session = Depe
         
         # Check if preference already exists
         existing_pref = db.query(UserGamePreference).filter(
-            UserGamePreference.steam_id == status_update.steam_id,
+            UserGamePreference.steam_id == status_update.steamid,
             UserGamePreference.appid == status_update.appid
         ).first()
         
@@ -55,7 +55,7 @@ async def update_game_status(status_update: GameStatusUpdate, db: Session = Depe
         else:
             # Create new preference
             new_pref = UserGamePreference(
-                steam_id=status_update.steam_id,
+                steam_id=status_update.steamid,
                 appid=status_update.appid,
                 status=game_status
             )
@@ -87,7 +87,7 @@ async def get_recommendations(steam_id: str, db: Session = Depends(get_db)):
     }
     
     try:
-        return recommender.recommend(user_games, 20, user_preferences)
+        return recommender.recommend(user_games, 10, user_preferences)
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 

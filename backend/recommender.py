@@ -10,7 +10,7 @@ import pandas as pd
 
 class Recommender:
     def __init__(self, db: Session, min_reviews: int = 100, review_weight: float = 0.3, 
-                 popularity_weight: float = 0.2, diversity_weight: float = 0.2):
+                 popularity_weight: float = 0.4, diversity_weight: float = 0.2):
         """
         Initialize the recommender system.
         
@@ -75,6 +75,11 @@ class Recommender:
         # Build user profile
         user_game_ids = {int(g["appid"]): float(g["playtime_forever"]) for g in user_games}
         
+        # Track all games the user has interacted with (owned, liked, or disliked)
+        interacted_games = set(user_game_ids.keys())
+        if user_preferences:
+            interacted_games.update(int(appid) for appid in user_preferences.keys())
+        
         # Find indices of user's games that exist in our filtered dataset
         user_game_mask = self.df["appid"].isin(user_game_ids)
         user_game_idxs = self.df[user_game_mask].index.tolist()
@@ -82,10 +87,19 @@ class Recommender:
         if not user_game_idxs:
             return []
 
-        # Get user's preferred developers
-        user_developers = set(self.df.loc[user_game_idxs, "developer"].unique())
+        # Get user's preferred developers and genres from liked games
+        liked_game_idxs = []
+        if user_preferences:
+            liked_game_idxs = [idx for idx in user_game_idxs 
+                             if str(self.df.loc[idx, "appid"]) in user_preferences 
+                             and user_preferences[str(self.df.loc[idx, "appid"])] == "liked"]
         
-        # Normalize playtimes
+        user_developers = set(self.df.loc[user_game_idxs, "developer"].unique())
+        user_genres = set()
+        if liked_game_idxs:
+            user_genres = set(' '.join(self.df.loc[liked_game_idxs, "genres"].values).split())
+        
+        # Normalize playtimes with stronger preference weights
         playtimes = []
         for idx in user_game_idxs:
             appid = int(self.df.loc[idx, "appid"])
@@ -94,9 +108,9 @@ class Recommender:
                 # Adjust playtime based on user preference if it exists
                 if user_preferences and str(appid) in user_preferences:
                     if user_preferences[str(appid)] == "disliked":
-                        playtime *= 0.1  # Significantly reduce score for disliked games
+                        playtime *= 0.05  # Stronger reduction for disliked games
                     elif user_preferences[str(appid)] == "liked":
-                        playtime *= 1.5  # Boost score for liked games
+                        playtime *= 2.0  # Stronger boost for liked games
                 playtimes.append(playtime)
             else:
                 playtimes.append(0.0)
@@ -110,13 +124,8 @@ class Recommender:
         model.fit(X_train, y_train)
 
         # Predict content-based scores
-        user_owned = set(user_game_ids.keys())
-        # Also exclude games that user has explicitly disliked
-        if user_preferences:
-            disliked_games = {int(appid) for appid, status in user_preferences.items() if status == "disliked"}
-            user_owned.update(disliked_games)
-            
-        unseen_mask = ~self.df["appid"].isin(user_owned)
+        # Exclude all interacted games (owned, liked, or disliked)
+        unseen_mask = ~self.df["appid"].isin(interacted_games)
         unseen_idxs = self.df[unseen_mask].index.tolist()
         
         if not unseen_idxs:
@@ -129,17 +138,24 @@ class Recommender:
         review_scores = self.df.loc[unseen_idxs, 'review_ratio'].values
         popularity_scores = self.df.loc[unseen_idxs, 'popularity_score'].values
         
-        # Calculate diversity penalty
+        # Calculate diversity penalty and genre similarity
         unseen_developers = self.df.loc[unseen_idxs, "developer"].values
-        diversity_penalty = np.array([0.5 if dev in user_developers else 0.0 for dev in unseen_developers])
+        unseen_genres = self.df.loc[unseen_idxs, "genres"].values
         
-        # Apply preference boost for liked games
-        preference_boost = np.ones(len(unseen_idxs))
-        if user_preferences:
-            for i, idx in enumerate(unseen_idxs):
-                appid = int(self.df.loc[idx, "appid"])
-                if str(appid) in user_preferences and user_preferences[str(appid)] == "liked":
-                    preference_boost[i] = 1.5  # Boost score for liked games
+        # Stronger diversity penalty for games from same developers as disliked games
+        diversity_penalty = np.array([0.7 if dev in user_developers else 0.0 for dev in unseen_developers])
+        
+        # Calculate genre similarity score for games similar to liked ones
+        genre_similarity = np.zeros(len(unseen_idxs))
+        for i, genres in enumerate(unseen_genres):
+            game_genres = set(genres.split())
+            if game_genres and user_genres:
+                # Calculate Jaccard similarity between game genres and user's liked genres
+                similarity = len(game_genres.intersection(user_genres)) / len(game_genres.union(user_genres))
+                genre_similarity[i] = similarity
+        
+        # Apply preference boost based on genre similarity
+        preference_boost = 1.0 + (genre_similarity * 0.5)  # Up to 1.5x boost for very similar games
         
         # Combine scores with weighted average
         final_scores = (
@@ -149,6 +165,17 @@ class Recommender:
             self.diversity_weight * diversity_penalty
         ) * preference_boost
 
+        # Normalize scores to 1-100 range using sigmoid function
+        # This ensures scores are bounded and more stable than min-max normalization
+        def sigmoid(x):
+            return 1 / (1 + np.exp(-x))
+        
+        # Scale scores to reasonable range before sigmoid
+        scaled_scores = (final_scores - np.mean(final_scores)) / (np.std(final_scores) + 1e-6)
+        normalized_scores = sigmoid(scaled_scores)
+        # Convert to 1-100 range
+        normalized_scores = 1 + (normalized_scores * 99)
+
         # Get top N recommendations
         top_n = min(top_n, len(final_scores))
         top_indices = np.argsort(final_scores)[-top_n:][::-1]
@@ -156,7 +183,7 @@ class Recommender:
 
         # Get full game data from database
         recommended_games = []
-        for idx in top_game_idxs:
+        for idx, score in zip(top_game_idxs, normalized_scores[top_indices]):
             appid = int(self.df.loc[idx, "appid"])
             game = self.db.query(Game).filter(Game.appid == appid).first()
             if game:
@@ -170,6 +197,8 @@ class Recommender:
                     "developer": ' '.join(game.developer) if game.developer else "Unknown",
                     "publisher": ' '.join(game.publisher) if game.publisher else "Unknown",
                     "screenshots": game.screenshots if game.screenshots else [],
+                    "tags": game.tags if game.tags else [],
+                    "recommendationScore": round(float(score), 1)  # Round to 1 decimal place
                 })
 
         return recommended_games
