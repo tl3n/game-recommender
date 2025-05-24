@@ -1,61 +1,48 @@
 # recommender.py
 import numpy as np
-import pandas as pd
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.linear_model import Ridge
-from sklearn.metrics.pairwise import linear_kernel
-from sklearn.preprocessing import MultiLabelBinarizer
-from sklearn.compose import ColumnTransformer
-from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import OneHotEncoder
+from sqlalchemy.orm import Session
+from models import Game
+from typing import List, Dict, Any
+import pandas as pd
 
 class Recommender:
-    def __init__(self, metadata_df: pd.DataFrame, min_reviews: int = 100, review_weight: float = 0.3, 
+    def __init__(self, db: Session, min_reviews: int = 100, review_weight: float = 0.3, 
                  popularity_weight: float = 0.2, diversity_weight: float = 0.2):
         """
         Initialize the recommender system.
         
         Args:
-            metadata_df: DataFrame containing game metadata
+            db: SQLAlchemy database session
             min_reviews: Minimum number of total reviews required for a game to be recommended
             review_weight: Weight given to review ratio in final score (0-1)
             popularity_weight: Weight given to popularity (total reviews) in final score (0-1)
             diversity_weight: Weight given to diversity penalty in final score (0-1)
         """
-        self.df = metadata_df.copy()
+        print("Initializing recommender")
+        self.db = db
         self.min_reviews = min_reviews
         self.review_weight = review_weight
         self.popularity_weight = popularity_weight
         self.diversity_weight = diversity_weight
         
-        # Calculate review ratios and popularity scores
-        self.df['total_reviews'] = self.df['positive'] + self.df['negative']
-        self.df['review_ratio'] = self.df['positive'] / (self.df['total_reviews'] + 1e-6)
+        # Get all games that meet minimum review threshold
+        self.games = db.query(Game).filter(Game.total_reviews >= min_reviews).all()
         
-        # Normalize popularity scores (total reviews) to 0-1 range
-        max_reviews = self.df['total_reviews'].max()
-        self.df['popularity_score'] = self.df['total_reviews'] / (max_reviews + 1e-6)
-        
-        # Filter out games with insufficient reviews
-        self.df = self.df[self.df['total_reviews'] >= min_reviews].copy()
-        self.df = self.df.reset_index(drop=True)
-        
-        # Prepare features for vectorization
-        # Ensure tags and genres are lists and convert to space-separated strings
-        self.df['tags'] = self.df['tags'].apply(
-            lambda x: " ".join(x) if isinstance(x, (list, tuple, set)) else str(x) if pd.notna(x) else ""
-        )
-        self.df['genres'] = self.df['genres'].apply(
-            lambda x: " ".join(x) if isinstance(x, (list, tuple, set)) else str(x) if pd.notna(x) else ""
-        )
-        
-        # Fill NaN values for developer and publisher and ensure they are strings
-        self.df['developer'] = self.df['developer'].apply(
-            lambda x: " ".join(x) if isinstance(x, (list, tuple, set)) else str(x) if pd.notna(x) else "Unknown"
-        )
-        self.df['publisher'] = self.df['publisher'].apply(
-            lambda x: " ".join(x) if isinstance(x, (list, tuple, set)) else str(x) if pd.notna(x) else "Unknown"
-        )
+        # Convert to DataFrame for easier processing
+        self.df = pd.DataFrame([{
+            'appid': g.appid,
+            'name': g.name,
+            'description': g.detailed_description or g.short_description or '',
+            'tags': ' '.join(g.tags) if g.tags else '',
+            'genres': ' '.join(g.genres) if g.genres else '',
+            'developer': ' '.join(g.developer) if g.developer else 'Unknown',
+            'publisher': ' '.join(g.publisher) if g.publisher else 'Unknown',
+            'review_ratio': g.review_ratio,
+            'popularity_score': g.popularity_score
+        } for g in self.games])
         
         # Create feature transformers
         self.description_vectorizer = TfidfVectorizer(max_features=5000, stop_words='english')
@@ -65,7 +52,7 @@ class Recommender:
         self.publisher_encoder = OneHotEncoder(handle_unknown='ignore', sparse_output=True)
         
         # Fit transformers
-        self.description_matrix = self.description_vectorizer.fit_transform(self.df["description"].fillna(""))
+        self.description_matrix = self.description_vectorizer.fit_transform(self.df["description"])
         self.tags_matrix = self.tags_vectorizer.fit_transform(self.df["tags"])
         self.genres_matrix = self.genres_vectorizer.fit_transform(self.df["genres"])
         self.developer_matrix = self.developer_encoder.fit_transform(self.df[["developer"]])
@@ -81,7 +68,7 @@ class Recommender:
             self.publisher_matrix
         ])
 
-    def recommend(self, user_games: list, top_n: int = 10):
+    def recommend(self, user_games: List[Dict[str, Any]], top_n: int = 10, user_preferences: Dict[str, str] = None) -> List[Dict[str, Any]]:
         if not user_games:
             return []
 
@@ -104,6 +91,12 @@ class Recommender:
             appid = int(self.df.loc[idx, "appid"])
             if appid in user_game_ids:
                 playtime = min(user_game_ids[appid] / 6000, 1.0)  # 100h = 6000min
+                # Adjust playtime based on user preference if it exists
+                if user_preferences and str(appid) in user_preferences:
+                    if user_preferences[str(appid)] == "disliked":
+                        playtime *= 0.1  # Significantly reduce score for disliked games
+                    elif user_preferences[str(appid)] == "liked":
+                        playtime *= 1.5  # Boost score for liked games
                 playtimes.append(playtime)
             else:
                 playtimes.append(0.0)
@@ -118,6 +111,11 @@ class Recommender:
 
         # Predict content-based scores
         user_owned = set(user_game_ids.keys())
+        # Also exclude games that user has explicitly disliked
+        if user_preferences:
+            disliked_games = {int(appid) for appid, status in user_preferences.items() if status == "disliked"}
+            user_owned.update(disliked_games)
+            
         unseen_mask = ~self.df["appid"].isin(user_owned)
         unseen_idxs = self.df[unseen_mask].index.tolist()
         
@@ -135,27 +133,43 @@ class Recommender:
         unseen_developers = self.df.loc[unseen_idxs, "developer"].values
         diversity_penalty = np.array([0.5 if dev in user_developers else 0.0 for dev in unseen_developers])
         
+        # Apply preference boost for liked games
+        preference_boost = np.ones(len(unseen_idxs))
+        if user_preferences:
+            for i, idx in enumerate(unseen_idxs):
+                appid = int(self.df.loc[idx, "appid"])
+                if str(appid) in user_preferences and user_preferences[str(appid)] == "liked":
+                    preference_boost[i] = 1.5  # Boost score for liked games
+        
         # Combine scores with weighted average
         final_scores = (
             (1 - self.review_weight - self.popularity_weight - self.diversity_weight) * content_scores +
             self.review_weight * review_scores +
             self.popularity_weight * popularity_scores -
             self.diversity_weight * diversity_penalty
-        )
+        ) * preference_boost
 
         # Get top N recommendations
         top_n = min(top_n, len(final_scores))
         top_indices = np.argsort(final_scores)[-top_n:][::-1]
         top_game_idxs = [unseen_idxs[i] for i in top_indices]
 
-        return [
-            {
-                "title": str(self.df.loc[i, "name"]),
-                "appid": int(self.df.loc[i, "appid"]),
-                "developer": str(self.df.loc[i, "developer"]),
-                "score": float(final_scores[top_indices[j]]),
-                "review_ratio": float(self.df.loc[i, "review_ratio"]),
-                "total_reviews": int(self.df.loc[i, "total_reviews"])
-            }
-            for j, i in enumerate(top_game_idxs)
-        ]
+        # Get full game data from database
+        recommended_games = []
+        for idx in top_game_idxs:
+            appid = int(self.df.loc[idx, "appid"])
+            game = self.db.query(Game).filter(Game.appid == appid).first()
+            if game:
+                recommended_games.append({
+                    "appid": str(game.appid),
+                    "name": game.name,
+                    "releaseDate": game.release_date,
+                    "detailedDescription": game.detailed_description,
+                    "shortDescription": game.short_description,
+                    "headerImage": game.header_image,
+                    "developer": ' '.join(game.developer) if game.developer else "Unknown",
+                    "publisher": ' '.join(game.publisher) if game.publisher else "Unknown",
+                    "screenshots": game.screenshots if game.screenshots else [],
+                })
+
+        return recommended_games

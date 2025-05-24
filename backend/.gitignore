@@ -3,3 +3,5 @@
 __pycache__/
 games.csv
 games.json
+game_preferences.db
+game_recommender.db
