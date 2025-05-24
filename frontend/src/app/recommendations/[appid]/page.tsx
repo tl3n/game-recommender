@@ -28,7 +28,6 @@ export default async function Page({ params }: PageProps) {
   console.log(game?.tags);
 
   return (
-    <div className="min-h-screen bg-gradient-to-r from-neutral-950 to-neutral-800">
       <div className="container mx-auto px-4 py-4">
         <div className="flex flex-col gap-4">
           <div className="flex flex-col lg:flex-row gap-8">
@@ -140,6 +139,5 @@ export default async function Page({ params }: PageProps) {
           </p>
         </div>
       </div>
-    </div>
   );
 }

@@ -7,7 +7,6 @@ export default async function Page() {
   const games = await getGames();
 
   return (
-    <div className="min-h-screen bg-gradient-to-r from-neutral-950 to-neutral-800">
       <div className="container mx-auto px-4 py-4">
         
         <div className="grid gap-2 justify-center">
@@ -72,6 +71,5 @@ export default async function Page() {
           </div>
         </div>
       </div>
-    </div>
   );
 }
