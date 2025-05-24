@@ -2,7 +2,12 @@ import type { NextConfig } from "next";
 
 const nextConfig = {
   images: {
-    domains: ['cdn.akamai.steamstatic.com'],
+    remotePatterns: [
+      {
+        protocol: 'https',
+        hostname: '**',
+      },
+    ],
   },
 };
 

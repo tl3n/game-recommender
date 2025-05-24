@@ -13,5 +13,5 @@ async function auth(
 ) {
   return NextAuth(req, ctx, getAuthOptions(req));
 }
-
 export { auth as GET, auth as POST };
+

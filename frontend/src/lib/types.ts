@@ -8,4 +8,6 @@ export interface Game {
     developer: string,
     publisher: string,
     screenshots: string[],
+    tags: string[],
+    recommendationScore: number
 }
