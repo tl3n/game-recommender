@@ -1,36 +1,116 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Game Recommender - Фронтенд
 
-## Getting Started
+## Огляд
 
-First, run the development server:
+Game Recommender - це веб-додаток для рекомендації ігор, побудований з використанням сучасного стеку технологій. Фронтенд частина реалізована на Next.js 15 з використанням TypeScript, що забезпечує типобезпеку та кращу підтримку коду.
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+## Технічний стек
+
+### Основні технології
+- **Next.js 15** - React фреймворк з підтримкою серверного рендерингу (SSR) та статичної генерації (SSG)
+- **TypeScript** - для типізації та покращення якості коду
+- **React 19** - бібліотека для побудови користувацьких інтерфейсів
+- **Tailwind CSS** - утилітарний CSS фреймворк для стилізації
+- **NextAuth.js** - система аутентифікації з підтримкою Steam OAuth
+
+### Ключові залежності
+- `next-auth` та `next-auth-steam` - для авторизації через Steam
+- `embla-carousel-react` - для створення каруселі з іграми
+- `@radix-ui` компоненти - для доступних UI елементів
+- `lucide-react` - для іконок
+
+## Архітектура
+
+### Структура проекту
+```
+frontend/
+├── src/
+│   ├── app/           # App Router структура Next.js
+│   ├── components/    # React компоненти
+│   ├── lib/          # Утиліти та допоміжні функції
+│   └── styles/       # Глобальні стилі
+├── public/           # Статичні файли
+└── ...
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+### Взаємодія з бекендом
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+Фронтенд взаємодіє з бекендом через REST API. Основні ендпоінти:
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+1. **Аутентифікація**
+   - Авторизація через Steam
+   - Управління сесіями користувача
 
-## Learn More
+2. **Рекомендації ігор**
+   - Отримання персоналізованих рекомендацій
+   - Фільтрація та сортування ігор
+   - Отримання детальної інформації про ігри
 
-To learn more about Next.js, take a look at the following resources:
+3. **Профіль користувача**
+   - Управління налаштуваннями
+   - Історія перегляду рекомендацій
+   - Збережені ігри
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## Розробка
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+### Вимоги
+- Node.js (версія 18 або вище)
+- npm або yarn
 
-## Deploy on Vercel
+### Встановлення
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+```bash
+# Встановлення залежностей
+npm install
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+# Запуск розробницького сервера
+npm run dev
+```
+
+### Доступні скрипти
+- `npm run dev` - запуск сервера розробки з Turbopack
+- `npm run build` - збірка проекту для продакшену
+- `npm run start` - запуск продакшен версії
+- `npm run lint` - перевірка коду ESLint
+
+## Особливості реалізації
+
+### Оптимізація продуктивності
+- Використання Next.js Image для оптимізації зображень
+- Автоматична оптимізація шрифтів через next/font
+- Серверний рендеринг для кращого SEO
+- Кешування даних на клієнті
+
+### Безпека
+- Захищені API роути
+- Безпечна аутентифікація через Steam
+- Захист від CSRF атак
+- Валідація даних на клієнті
+
+### Доступність
+- Семантична HTML розмітка
+- ARIA атрибути
+- Підтримка клавіатурної навігації
+- Адаптивний дизайн
+
+## Розгортання
+
+Додаток може бути розгорнутий на Vercel або будь-якому іншому хостингу, що підтримує Next.js. Для продакшен розгортання рекомендується:
+
+1. Зібрати проект: `npm run build`
+2. Запустити продакшен версію: `npm run start`
+3. Налаштувати змінні середовища для продакшену
+
+## Змінні середовища
+
+Створіть файл `.env.local` з наступними змінними:
+```
+NEXT_PUBLIC_API_URL=http://localhost:8000
+NEXTAUTH_URL=http://localhost:3000
+NEXTAUTH_SECRET=your-secret-key
+STEAM_API_KEY=your-steam-api-key
+```
+
+## Ліцензія
+
+MIT

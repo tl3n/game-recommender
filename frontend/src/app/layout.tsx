@@ -30,7 +30,7 @@ export default function RootLayout({
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
         <Providers>
-          <div className="min-h-screen bg-gradient-to-r from-neutral-950 to-neutral-800">
+          <div className="min-h-screen bg-gradient-to-r from-neutral-900 to-neutral-800">
             <Header />
             {children}
           </div>
