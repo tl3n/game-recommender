@@ -30,14 +30,11 @@ def load_metadata(filepath: str = "games.json") -> pd.DataFrame:
     with open(filepath, "r", encoding="utf-8") as f:
         raw_data = json.load(f)
 
-    print("Loading metadata from", filepath)
-
     rows = []
     for appid_str, game in raw_data.items():
         try:
             appid = int(appid_str)
             name = game.get("name", "")
-            print("Parsing game", name)
             release_date = game.get("release_date", [])
             detailed_description = game.get("detailed_description")
             short_description = game.get("short_description")

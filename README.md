@@ -2,6 +2,52 @@
 
 This project is a full-stack web application designed to provide users with personalized video game recommendations. It leverages machine learning techniques to analyze a user's gaming history (obtained via the Steam API) and their explicit in-app preferences to suggest new games they might enjoy.
 
+## Running with Docker
+
+### Prerequisites
+
+1. Install [Docker](https://docs.docker.com/get-docker/) and [Docker Compose](https://docs.docker.com/compose/install/)
+2. Download the Steam Games Dataset:
+   * Visit [Steam Games Dataset on Kaggle](https://www.kaggle.com/datasets/fronkongames/steam-games-dataset)
+   * Download the dataset
+   * Extract the contents into the `backend` directory
+   * Ensure the JSON file is named `games.json`
+
+### Running the Application
+
+1. Clone this repository:
+   ```bash
+   git clone https://github.com/tl3n/game-recommender.git
+   cd game-recommender
+   ```
+
+2. Copy the environment example files:
+   ```bash
+   # For backend
+   cp backend/.env.example backend/.env
+   
+   # For frontend
+   cp frontend/.env.example frontend/.env
+   ```
+
+3. Edit the `.env` files and fill in your actual values:
+   - For the backend, you'll need to set up your Steam API key
+   - For the frontend, you'll need to set up your NextAuth secret and Steam API key
+   - You can get your Steam API key [here](https://steamcommunity.com/dev/apikey)
+
+4. Start the application using Docker Compose:
+   ```bash
+   docker-compose up --build
+   ```
+
+5. Wait until both frontend and backend services will be up. The application will be available at:
+   * Frontend: http://localhost:3000
+   * Backend API: http://localhost:8000
+
+### Development Notes
+
+* The backend container will automatically run the database initialization script (`load_games_to_db.py`) on first startup
+
 ## Features
 
 *   **Steam Authentication:** Users can log in securely using their Steam accounts.
@@ -52,38 +98,6 @@ This project is a full-stack web application designed to provide users with pers
 7.  **Queue Completion & Revalidation:** When the user finishes the queue:
     *   The frontend triggers a revalidation of the `/recommendations` page data via a Next.js API route (`/api/revalidate`).
     *   This ensures that the next time the user visits the recommendations page, a fresh set of recommendations is fetched, taking into account their latest feedback.
-
-## Running with Docker
-
-### Prerequisites
-
-1. Install [Docker](https://docs.docker.com/get-docker/) and [Docker Compose](https://docs.docker.com/compose/install/)
-2. Download the Steam Games Dataset:
-   * Visit [Steam Games Dataset on Kaggle](https://www.kaggle.com/datasets/fronkongames/steam-games-dataset)
-   * Download the dataset
-   * Extract the contents into the `backend` directory
-   * Ensure the JSON file is named `games.json`
-
-### Running the Application
-
-1. Clone this repository:
-   ```bash
-   git clone https://github.com/tl3n/game-recommender.git
-   cd game-recommender
-   ```
-
-2. Start the application using Docker Compose:
-   ```bash
-   docker-compose up --build
-   ```
-
-3. The application will be available at:
-   * Frontend: http://localhost:3000
-   * Backend API: http://localhost:8000
-
-### Development Notes
-
-* The backend container will automatically run the database initialization script (`load_games_to_db.py`) on first startup
 
 ## Future Improvements
 
