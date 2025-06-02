@@ -1,4 +1,3 @@
-# recommender.py
 import numpy as np
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.linear_model import Ridge
@@ -10,7 +9,7 @@ import pandas as pd
 
 class Recommender:
     def __init__(self, db: Session, min_reviews: int = 100, review_weight: float = 0.3, 
-                 popularity_weight: float = 0.4, diversity_weight: float = 0.2):
+                 popularity_weight: float = 0.6, diversity_weight: float = 0.1):
         """
         Initialize the recommender system.
         

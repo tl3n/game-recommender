@@ -28,25 +28,25 @@ def get_db():
         db.close()
 
 class GameStatusUpdate(BaseModel):
-    appid: str
     status: str
     steamid: str
 
-@app.post("/game-status")
-async def update_game_status(status_update: GameStatusUpdate, db: Session = Depends(get_db)):
+
+@app.post("/games/{appid}/status")
+async def update_game_status(appid: str, status_update: GameStatusUpdate, db: Session = Depends(get_db)):
     try:
         # Validate status
         game_status = GameStatus(status_update.status.lower())
         
         # Check if game exists
-        game = db.query(Game).filter(Game.appid == status_update.appid).first()
+        game = db.query(Game).filter(Game.appid == appid).first()
         if not game:
             raise HTTPException(status_code=404, detail="Game not found")
         
         # Check if preference already exists
         existing_pref = db.query(UserGamePreference).filter(
             UserGamePreference.steam_id == status_update.steamid,
-            UserGamePreference.appid == status_update.appid
+            UserGamePreference.appid == appid
         ).first()
         
         if existing_pref:
@@ -56,7 +56,7 @@ async def update_game_status(status_update: GameStatusUpdate, db: Session = Depe
             # Create new preference
             new_pref = UserGamePreference(
                 steam_id=status_update.steamid,
-                appid=status_update.appid,
+                appid=appid,
                 status=game_status
             )
             db.add(new_pref)
