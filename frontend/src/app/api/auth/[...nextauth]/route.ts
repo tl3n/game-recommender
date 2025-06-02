@@ -1,17 +1,10 @@
-import { getAuthOptions } from "@/app/auth";
-import NextAuth from "next-auth";
+import { getAuthOptions } from '@/app/auth';
 import type { NextRequest } from "next/server";
+import NextAuth from 'next-auth';
 
-// Learn more: https://next-auth.js.org/configuration/initialization#route-handlers-app
-async function auth(
-  req: NextRequest,
-  ctx: {
-    params: {
-      nextauth: string[];
-    };
-  }
-) {
-  return NextAuth(req, ctx, getAuthOptions(req));
-}
-export { auth as GET, auth as POST };
+const handler = async (req: NextRequest, context: { params: Promise<{ nextauth: string[] }> }) => {
+  const authOptions = getAuthOptions(req);
+  return NextAuth(req, context, authOptions);
+};
 
+export { handler as GET, handler as POST };

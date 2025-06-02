@@ -9,7 +9,7 @@ export const getGames = cache(async (): Promise<Game[]> => {
     steamId = session.user.email.slice(0, 17);
   }
   const data = await fetch(
-    `http://127.0.0.1:8000/recommendations?steam_id=${steamId}`,
+    `${process.env.NEXT_PUBLIC_API_URL}/recommendations?steam_id=${steamId}`,
     { next: { revalidate: 3600 } }
   );
   return data.json();

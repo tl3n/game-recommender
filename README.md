@@ -53,6 +53,38 @@ This project is a full-stack web application designed to provide users with pers
     *   The frontend triggers a revalidation of the `/recommendations` page data via a Next.js API route (`/api/revalidate`).
     *   This ensures that the next time the user visits the recommendations page, a fresh set of recommendations is fetched, taking into account their latest feedback.
 
+## Running with Docker
+
+### Prerequisites
+
+1. Install [Docker](https://docs.docker.com/get-docker/) and [Docker Compose](https://docs.docker.com/compose/install/)
+2. Download the Steam Games Dataset:
+   * Visit [Steam Games Dataset on Kaggle](https://www.kaggle.com/datasets/fronkongames/steam-games-dataset)
+   * Download the dataset
+   * Extract the contents into the `backend` directory
+   * Ensure the JSON file is named `games.json`
+
+### Running the Application
+
+1. Clone this repository:
+   ```bash
+   git clone https://github.com/tl3n/game-recommender.git
+   cd game-recommender
+   ```
+
+2. Start the application using Docker Compose:
+   ```bash
+   docker-compose up --build
+   ```
+
+3. The application will be available at:
+   * Frontend: http://localhost:3000
+   * Backend API: http://localhost:8000
+
+### Development Notes
+
+* The backend container will automatically run the database initialization script (`load_games_to_db.py`) on first startup
+
 ## Future Improvements
 
 *   **Incorporate Collaborative Filtering:** Implement user-based or item-based collaborative filtering, or a hybrid approach, to potentially improve recommendations, especially for users with sparse interaction data.

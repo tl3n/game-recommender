@@ -37,7 +37,7 @@ export default async function Page() {
             <div className="mb-4">
               <span className="text-lg font-semibold">How does the recommendation system work?</span>
               <p className="text-base mt-1">
-                The system analyzes your Steam games, taking into account your playtime and your preferences (likes/dislikes) in this app. It uses machine learning to find games similar to those you've played, but also considers popularity, reviews, and developer diversity.
+                The system analyzes your Steam games, taking into account your playtime and your preferences (likes/dislikes) in this app. It uses machine learning to find games similar to those you&apos;ve played, but also considers popularity, reviews, and developer diversity.
               </p>
             </div>
             <div className="mb-4">
@@ -51,9 +51,9 @@ export default async function Page() {
               </ul>
             </div>
             <div className="mb-4">
-              <span className="text-lg font-semibold">How does the system decide what you'll like?</span>
+              <span className="text-lg font-semibold">How does the system decide what you&apos;ll like?</span>
               <p className="text-base mt-1">
-                The system builds your profile based on the games you've played and your preferences. It learns from this data and predicts which new games you might enjoy by comparing their features to your favorite games.
+                The system builds your profile based on the games you&apos;ve played and your preferences. It learns from this data and predicts which new games you might enjoy by comparing their features to your favorite games.
               </p>
             </div>
             <div className="mb-4">

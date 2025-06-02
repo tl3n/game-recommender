@@ -25,8 +25,6 @@ export default async function Page({ params }: PageProps) {
   const nextGame =
     currentIndex !== games.length - 1 ? games[currentIndex + 1] : "";
 
-  console.log(game?.tags);
-
   return (
       <div className="container mx-auto px-4 py-4">
         <div className="flex flex-col gap-4">

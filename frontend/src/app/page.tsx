@@ -1,16 +1,7 @@
-"use client";
-
-import { Button } from "@/components/ui/button";
-import { ChevronRight } from "lucide-react";
-import { signIn, useSession } from "next-auth/react";
-import { useRouter, useSearchParams } from "next/navigation";
+import { Suspense } from "react";
+import DiscoveryButton from "@/components/discovery-button";
 
 export default function Home() {
-  const session = useSession();
-  const router = useRouter();
-  const searchParams = useSearchParams();
-  const callbackUrl = searchParams.get("callbackUrl") || "/recommendations";
-
   return (
     <div className="flex items-center justify-center mt-60">
       <div className="grid text-center">
@@ -24,25 +15,14 @@ export default function Home() {
           <span className="text-lg">
             Get personalized game recommendations powered by machine learning.{" "}
             <br />
-            Find games you'll love based on your preferences and playing
+            Find games you&apos;ll love based on your preferences and playing
             history.
           </span>
         </div>
         <div className="">
-          <Button
-            variant="outline"
-            className="group bg-transparent text-xl px-5 py-5"
-            onClick={() => {
-              if (session.status === "authenticated") {
-                router.push(callbackUrl);
-              } else {
-                signIn("steam", { callbackUrl });
-              }
-            }}
-          >
-            Go to your discovery queue
-            <ChevronRight className="mt-1 group-hover:translate-x-1 transition-transform" />
-          </Button>
+          <Suspense>
+            <DiscoveryButton />
+          </Suspense>
         </div>
       </div>
     </div>

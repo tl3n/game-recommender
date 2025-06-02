@@ -1,10 +1,9 @@
-import { revalidatePath } from "next/cache";
 import { NextResponse } from "next/server";
 
 export async function POST(request: Request) {
   const { appid, status, steamid } = await request.json();
   
-  const response = await fetch(`http://127.0.0.1:8000/games/${appid}/status`, {
+  const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/games/${appid}/status`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
